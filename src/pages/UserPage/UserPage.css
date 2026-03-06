@@ -298,3 +298,11 @@ body {
     transform: translateY(0);
   }
 }
+/* Add this to your existing CSS file */
+.highlight-missing {
+  background-color: #fff1f2; /* Light red/pink background */
+  border-left: 4px solid #f43f5e; /* Strong red indicator */
+  padding-left: 10px;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}

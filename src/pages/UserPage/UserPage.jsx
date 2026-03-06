@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react'; // Added useRef
 import { supabase } from '../../supabaseClient';
 import './UserPage.css';
 
@@ -11,6 +11,9 @@ const UserPage = () => {
   });
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Ref to store DOM elements of the criteria for scrolling
+  const criteriaRefs = useRef({});
 
   const levels = [
     { label: 'Passable', mult: 1 },
@@ -127,6 +130,44 @@ const UserPage = () => {
   };
 
   const handleSubmit = async () => {
+    let firstMissingRef = null;
+    let missingFound = false;
+
+    // 1. VALIDATION CHECK
+    for (const [colId, tasks] of Object.entries(columns)) {
+      for (const task of tasks) {
+        for (let i = 0; i < task.criteria_list.length; i++) {
+          const crit = task.criteria_list[i];
+          const ratings = crit.ratings;
+
+          // Check if any required rating is 0
+          const values = Object.values(ratings);
+          if (values.some((v) => v === 0)) {
+            missingFound = true;
+            // Get the ref we stored in the JSX
+            const refKey = `${task.id}-${i}`;
+            firstMissingRef = criteriaRefs.current[refKey];
+            break;
+          }
+        }
+        if (missingFound) break;
+      }
+      if (missingFound) break;
+    }
+
+    if (missingFound && firstMissingRef) {
+      alert("Attention : Vous avez oublié d'évaluer certains critères.");
+      firstMissingRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add a temporary highlight class
+      firstMissingRef.classList.add('highlight-missing');
+      setTimeout(
+        () => firstMissingRef.classList.remove('highlight-missing'),
+        2000
+      );
+      return; // Stop the submission
+    }
+
+    // 2. SUBMISSION LOGIC (Only runs if validation passes)
     const allResponses = {};
     const categoryMaps = {
       score_contenu: {},
@@ -196,11 +237,14 @@ const UserPage = () => {
                 </div>
 
                 {t.criteria_list.map((c, i) => (
-                  <div key={i} className="crit-item">
+                  <div
+                    key={i}
+                    className="crit-item"
+                    ref={(el) => (criteriaRefs.current[`${t.id}-${i}`] = el)} // Assigning Ref
+                  >
                     <div className="crit-header-row">
                       <div className="crit-info">
                         <p className="crit-name">{c.subtitle}</p>
-                        {/* THE ADDED EXPLICATION FIELD */}
                         {c.explication && (
                           <p className="crit-explication">{c.explication}</p>
                         )}
